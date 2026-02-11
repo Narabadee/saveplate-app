@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-    Clock, Flame, Heart, Shield, MapPin, ChevronRight, Search,
+    Clock, Flame, Heart, Shield, MapPin, ChevronRight, Search, X,
     Sparkles, Timer, Leaf, Bell, Map, List, RefreshCw, Star
 } from 'lucide-react';
 import { MOCK_BAGS, CATEGORIES } from './data';

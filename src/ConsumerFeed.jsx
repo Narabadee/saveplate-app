@@ -139,13 +139,19 @@ export default function ConsumerFeed({ onSelectBag, onNavigate }) {
     const filteredBags = MOCK_BAGS.filter(b => {
         const matchesSearch = searchQuery ? b.storeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
             b.category.toLowerCase().includes(searchQuery.toLowerCase()) : true;
+
         const matchesTab = activeTab === 'all'
             ? true
             : activeTab === 'surprise'
                 ? (!b.type || b.type === 'surprise')
                 : (b.type === 'selectable');
 
-        return matchesSearch && matchesTab;
+        const selectedCategoryStr = CATEGORIES[activeCategory];
+        const matchesCategory = activeCategory === 0 || // All
+            b.category.includes(selectedCategoryStr.split(' ')[1]) || // Match word after emoji
+            selectedCategoryStr.includes(b.category); // Fallback
+
+        return matchesSearch && matchesTab && matchesCategory;
     });
 
     return (

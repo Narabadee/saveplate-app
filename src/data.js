@@ -10,9 +10,9 @@ export const MOCK_BAGS = [
         color1: '#f59e0b', color2: '#d97706',
         type: 'selectable',
         items: [
-            { id: 101, name: 'Almond Croissant', price: 35, originalPrice: 70, remaining: 5, image: 'https://images.unsplash.com/photo-1555507036-ab1f40388085?auto=format&fit=crop&w=150&q=80' },
-            { id: 102, name: 'French Baguette', price: 20, originalPrice: 40, remaining: 8, image: 'https://images.unsplash.com/photo-1598373182133-52452f7691ef?auto=format&fit=crop&w=150&q=80' },
-            { id: 103, name: 'Choco Muffin', price: 25, originalPrice: 50, remaining: 4, image: 'https://images.unsplash.com/photo-1629168482618-22da78b27329?auto=format&fit=crop&w=150&q=80' }
+            { id: 101, name: 'Almond Croissant', price: 35, originalPrice: 70, remaining: 5, image: 'https://images.unsplash.com/photo-1550617931-e17a7b70dce2?auto=format&fit=crop&w=150&q=80' },
+            { id: 102, name: 'French Baguette', price: 20, originalPrice: 40, remaining: 8, image: 'https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=150&q=80' },
+            { id: 103, name: 'Choco Muffin', price: 25, originalPrice: 50, remaining: 4, image: 'https://images.unsplash.com/photo-1554342597-27e8a476b72b?auto=format&fit=crop&w=150&q=80' }
         ]
     },
     {
@@ -52,11 +52,19 @@ export const MOCK_BAGS = [
         color1: '#f97316', color2: '#ea580c',
         type: 'selectable',
         items: [
-            { id: 501, name: 'Margherita Pizza', price: 80, originalPrice: 160, remaining: 3, image: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=150&q=80' },
+            { id: 501, name: 'Margherita Pizza', price: 80, originalPrice: 160, remaining: 3, image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=150&q=80' },
             { id: 502, name: 'Pepperoni Slice', price: 40, originalPrice: 80, remaining: 5, image: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?auto=format&fit=crop&w=150&q=80' },
-            { id: 503, name: 'Garlic Bread', price: 30, originalPrice: 60, remaining: 4, image: 'https://images.unsplash.com/photo-1573140247632-f84660f67627?auto=format&fit=crop&w=150&q=80' }
+            { id: 503, name: 'Garlic Bread', price: 30, originalPrice: 60, remaining: 4, image: 'https://images.unsplash.com/photo-1619535860434-7f08630f5d05?auto=format&fit=crop&w=150&q=80' }
         ]
     },
+];
+
+export const MOCK_REVIEWS = [
+    { id: 1, storeId: 2, user: "Sarah M.", rating: 5, text: "Got a huge portion of Green Curry and rice. Absolutely delicious!", date: "2 days ago", tags: ["Generous Portion", "Tasty"] },
+    { id: 2, storeId: 2, user: "Tom K.", rating: 4, text: "Good value, but a bit spicy for me. Still worth it!", date: "1 week ago", tags: ["Spicy"] },
+    { id: 3, storeId: 1, user: "Jenny L.", rating: 5, text: "Best croissants in town. They were still warm!", date: "Yesterday", tags: ["Fresh"] },
+    { id: 4, storeId: 5, user: "Mike P.", rating: 3, text: "Pizza was okay, but cold. Needed reheating.", date: "3 days ago", items: ["Pizza"], tags: ["Cold"] },
+    { id: 5, storeId: 2, user: "Alice W.", rating: 5, text: "Love this place! Always great surprises.", date: "Just now", tags: ["Great Value"] },
 ];
 
 export const IMPACT_STATS = {

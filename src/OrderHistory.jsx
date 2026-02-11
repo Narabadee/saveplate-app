@@ -1,9 +1,32 @@
-import { Clock, MapPin, CheckCircle2, Package, ChevronRight } from 'lucide-react';
-import { BottomNav, StoreAvatar } from './Shared';
+import { useState } from 'react';
+import { Clock, MapPin, CheckCircle2, Package, ChevronRight, Star } from 'lucide-react';
+import { BottomNav, StoreAvatar, useToast } from './Shared';
+import { ReviewModal } from './Reviews';
 
 export default function OrderHistory({ orders, onNavigate }) {
+    const [reviewModalOpen, setReviewModalOpen] = useState(false);
+    const [selectedOrder, setSelectedOrder] = useState(null);
+    const toast = useToast();
+
+    const handleWriteReview = (order) => {
+        setSelectedOrder(order);
+        setReviewModalOpen(true);
+    };
+
+    const handleSubmitReview = (review) => {
+        console.log("Review Submitted:", review, "For Order:", selectedOrder);
+        toast('🎉 Review submitted! Thanks for your feedback.');
+        setReviewModalOpen(false);
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white dm-bg page-enter-left flex flex-col">
+            <ReviewModal
+                isOpen={reviewModalOpen}
+                onClose={() => setReviewModalOpen(false)}
+                storeName={selectedOrder?.bag.storeName}
+                onSubmit={handleSubmitReview}
+            />
             <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 px-5 pt-12 pb-6 rounded-b-3xl flex-shrink-0">
                 <div className="flex items-center gap-2 mb-1">
                     <Package className="w-5 h-5 text-emerald-200" />
@@ -45,9 +68,18 @@ export default function OrderHistory({ orders, onNavigate }) {
                                     <span className="text-xs text-emerald-600 font-medium">Confirmed at {order.time}</span>
                                 </div>
                             </div>
-                            <div className="text-right flex-shrink-0">
-                                <p className="text-emerald-600 font-extrabold">฿{order.bag.sellingPrice}</p>
-                                <p className="text-gray-400 text-xs line-through">฿{order.bag.originalPrice}</p>
+
+                            <div className="text-right flex-shrink-0 flex flex-col items-end gap-2">
+                                <div>
+                                    <p className="text-emerald-600 font-extrabold">฿{order.bag.sellingPrice}</p>
+                                    <p className="text-gray-400 text-xs line-through">฿{order.bag.originalPrice}</p>
+                                </div>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); handleWriteReview(order); }}
+                                    className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 text-xs font-bold flex items-center gap-1 active:scale-90 transition-transform"
+                                >
+                                    <Star className="w-3 h-3" /> Review
+                                </button>
                             </div>
                             <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
                         </div>
@@ -55,6 +87,6 @@ export default function OrderHistory({ orders, onNavigate }) {
                 )}
             </div>
             <BottomNav active="history" onNavigate={onNavigate} />
-        </div>
+        </div >
     );
 }

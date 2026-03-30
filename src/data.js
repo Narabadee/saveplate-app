@@ -12,7 +12,7 @@ export const MOCK_BAGS = [
         items: [
             { id: 101, name: 'Almond Croissant', price: 35, originalPrice: 70, remaining: 5, image: 'https://images.unsplash.com/photo-1550617931-e17a7b70dce2?auto=format&fit=crop&w=150&q=80' },
             { id: 102, name: 'French Baguette', price: 20, originalPrice: 40, remaining: 8, image: 'https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=150&q=80' },
-            { id: 103, name: 'Choco Muffin', price: 25, originalPrice: 50, remaining: 4, image: 'https://images.unsplash.com/photo-1554342597-27e8a476b72b?auto=format&fit=crop&w=150&q=80' }
+            { id: 103, name: 'Choco Muffin', price: 25, originalPrice: 50, remaining: 4, image: 'https://images.unsplash.com/photo-1607958996333-41aef7caefaa?auto=format&fit=crop&w=150&q=80' }
         ]
     },
     {
@@ -79,3 +79,9 @@ export const ONBOARDING_SLIDES = [
 ];
 
 export const CATEGORIES = ['All', '🥐 Bakery', '🍜 Thai', '🥗 Healthy', '☕ Café', '🍕 Italian'];
+
+export const MOCK_REWARDS = [
+    { id: 1, title: '฿20 Discount', code: 'HERO20', level: 3, description: 'Get ฿20 off any surprise bag', status: 'ready', type: 'coupon' },
+    { id: 2, title: 'Free Delivery', code: 'ECOFRIEND', level: 6, description: 'Zero delivery fee on your next rescue', status: 'locked', type: 'service' },
+    { id: 3, title: '฿50 Gift Card', code: 'PLATINUM50', level: 9, description: '฿50 credit for any store', status: 'locked', type: 'cash' },
+];

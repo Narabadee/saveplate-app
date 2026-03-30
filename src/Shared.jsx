@@ -76,10 +76,17 @@ export function DarkModeProvider({ children }) {
 // ─── Auth Provider ──────────────────────────────────────────────────────────────
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(() => {
+        const defaultPrototypeUser = {
+            id: 'test-account',
+            name: 'Test Hero',
+            email: 'test@gmail.com',
+            password: '123456',
+            joinedAt: new Date().toISOString(),
+        };
         try {
             const stored = localStorage.getItem('saveplate_user');
-            return stored ? JSON.parse(stored) : null;
-        } catch { return null; }
+            return stored ? JSON.parse(stored) : defaultPrototypeUser;
+        } catch { return defaultPrototypeUser; }
     });
 
     const signUp = useCallback((name, email, password) => {

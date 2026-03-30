@@ -259,18 +259,6 @@ export default function ProfileScreen({ onNavigate }) {
                                 />
                             </div>
 
-                            <button 
-                                onClick={handleSignOut}
-                                className="w-full glass-pane rounded-3xl p-5 border-white shadow-sm flex items-center gap-4 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
-                            >
-                                <div className="w-10 h-10 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
-                                    <LogOut className="w-4 h-4" />
-                                </div>
-                                <div className="text-left">
-                                    <p className="text-sm font-black uppercase tracking-widest">Sign Out Safely</p>
-                                    <p className="text-[10px] font-bold text-red-400 uppercase tracking-tight">Clear session history</p>
-                                </div>
-                            </button>
                         </div>
                     </>
                 )}

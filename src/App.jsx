@@ -154,7 +154,7 @@ function OnboardingScreen({ onDone }) {
 
 // ─── Main App ───────────────────────────────────────────────────────────────────
 function AppContent() {
-  const [phase, setPhase] = useState('splash');
+  const [phase, setPhase] = useState('app'); // bypass splash/onboarding for prototype
   const [screen, setScreen] = useState('feed');
   const [authReturn, setAuthReturn] = useState({ screen: 'feed', bag: null });
   const [selectedBag, setSelectedBag] = useState(null);

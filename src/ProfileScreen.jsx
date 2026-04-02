@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
-import { 
-    User, Mail, Lock, Shield, Bell, Moon, Sun, 
-    ChevronRight, LogOut, Camera, Check, AlertTriangle, 
-    TrendingUp, Award, Leaf, Save, Settings, Sparkles, Heart, Store
+import {
+    User, Mail, Lock, Shield, Bell, Moon, Sun,
+    ChevronRight, LogOut, Camera, Check, AlertTriangle,
+    TrendingUp, Award, Leaf, Save, Settings, Sparkles, Heart, Store, BookOpen
 } from 'lucide-react';
-import { useAuth, useDarkMode, useToast, useBusinessMode, useFavorites } from './Shared';
+import { useAuth, useDarkMode, useToast, useFavorites } from './Shared';
 
 const AVATARS = ['🦸', '🥗', '🥑', '🥦', '🍎', '🥕', '🍕', '🍰', '☕', '🍱'];
 
 export default function ProfileScreen({ onNavigate }) {
-    const { user, signOut, updateUser, businessMode, toggleBusinessMode } = useAuth();
+    const { user, signOut, updateUser } = useAuth();
     const { dark, toggle } = useDarkMode();
     const { favorites } = useFavorites();
     const toast = useToast();
@@ -56,7 +56,7 @@ export default function ProfileScreen({ onNavigate }) {
     const handleSignOut = () => {
         signOut();
         toast('👋 Signed out safely. See you soon!', 'info');
-        onNavigate('feed');
+        onNavigate('auth');
     };
 
     const handleUpdateProfile = async (e) => {
@@ -233,29 +233,40 @@ export default function ProfileScreen({ onNavigate }) {
                                 </div>
                                 <div className="flex items-center justify-between p-4 px-5">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-2xl bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center">
-                                            <Store className="w-4.5 h-4.5 text-brand-500" />
+                                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${user.role === 'vendor' ? 'bg-brand-50 dark:bg-brand-900/20' : 'bg-blue-50 dark:bg-blue-900/20'}`}>
+                                            {user.role === 'vendor'
+                                                ? <Store className="w-4 h-4 text-brand-500" />
+                                                : <BookOpen className="w-4 h-4 text-blue-500" />}
                                         </div>
                                         <div>
-                                            <p className="text-sm font-black text-gray-800 dm-text">Business Portal</p>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Merchant Management</p>
+                                            <p className="text-sm font-black text-gray-800 dm-text">
+                                                {user.role === 'vendor' ? 'Vendor Account' : 'Student Account'}
+                                            </p>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">
+                                                {user.role === 'vendor' ? 'Canteen Management Access' : 'Food Rescue Access'}
+                                            </p>
                                         </div>
                                     </div>
-                                    <button 
-                                        onClick={() => {
-                                            toggleBusinessMode();
-                                            toast(businessMode ? '🏠 Back to Hero Feed' : '🏢 Switching to Merchant Dash...', 'info');
-                                        }} 
-                                        className={`w-11 h-6 rounded-full relative transition-colors duration-300 ${businessMode ? 'bg-brand-600 shadow-inner' : 'bg-gray-200'}`}
-                                    >
-                                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-md transition-all duration-300 ${businessMode ? 'left-6' : 'left-1'}`} />
-                                    </button>
+                                    <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest ${user.role === 'vendor' ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
+                                        {user.role === 'vendor' ? 'Vendor' : 'Student'}
+                                    </span>
                                 </div>
                                 <ProfileItem 
                                     icon={<Bell className="w-4 h-4" />} 
                                     label="Hero Alerts" 
                                     sub="Push Notifications, Deal Updates"
                                     toggle={true}
+                                />
+                            </div>
+
+                            {/* Logout Group */}
+                            <div className="glass-pane rounded-3xl border-white shadow-sm overflow-hidden card-stagger" style={{ animationDelay: '0.3s' }}>
+                                <ProfileItem 
+                                    icon={<LogOut className="w-4 h-4 text-red-500" />} 
+                                    label="Access Session" 
+                                    sub="Safely Sign Out of UniEat"
+                                    onClick={handleSignOut}
+                                    danger={true}
                                 />
                             </div>
 
@@ -350,22 +361,24 @@ export default function ProfileScreen({ onNavigate }) {
     );
 }
 
-function ProfileItem({ icon, label, sub, onClick, toggle }) {
+function ProfileItem({ icon, label, sub, onClick, toggle, danger }) {
     const [toggled, setToggled] = useState(true);
     
     return (
         <button 
             onClick={onClick || (toggle ? () => setToggled(t => !t) : null)}
-            className="w-full flex items-center justify-between p-4 px-5 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all group"
+            className={`w-full flex items-center justify-between p-4 px-5 transition-all group
+                ${danger ? 'hover:bg-red-50/50 dark:hover:bg-red-900/10' : 'hover:bg-gray-50/50 dark:hover:bg-white/5'}`}
         >
             <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center transition-colors group-hover:bg-brand-50 dark:group-hover:bg-brand-900/20">
-                    <div className="text-gray-500 group-hover:text-brand-600 transition-colors">
+                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-colors 
+                    ${danger ? 'bg-red-50 dark:bg-red-900/20 group-hover:bg-red-100' : 'bg-slate-100 dark:bg-slate-800 group-hover:bg-brand-50 dark:group-hover:bg-brand-900/20'}`}>
+                    <div className={`${danger ? 'text-red-500' : 'text-gray-500 group-hover:text-brand-600'} transition-colors`}>
                         {icon}
                     </div>
                 </div>
                 <div className="text-left">
-                    <p className="text-sm font-black text-gray-800 dm-text">{label}</p>
+                    <p className={`text-sm font-black dm-text ${danger ? 'text-red-600' : 'text-gray-800'}`}>{label}</p>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">{sub}</p>
                 </div>
             </div>
@@ -374,7 +387,7 @@ function ProfileItem({ icon, label, sub, onClick, toggle }) {
                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-md transition-all duration-300 ${toggled ? 'left-6' : 'left-1'}`} />
                 </div>
             ) : (
-                <ChevronRight className="w-4 h-4 text-gray-300 group-hover:translate-x-1 transition-transform" />
+                <ChevronRight className={`w-4 h-4 transition-transform group-hover:translate-x-1 ${danger ? 'text-red-300' : 'text-gray-300'}`} />
             )}
         </button>
     );

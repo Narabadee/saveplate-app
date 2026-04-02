@@ -48,7 +48,7 @@ function SplashScreen({ onDone }) {
 
       {/* Text Branding */}
       <div className="splash-text mt-12 text-center relative z-20">
-        <h1 className="text-white text-4xl font-black tracking-tight mb-2 italic">SavePlate</h1>
+        <h1 className="text-white text-4xl font-black tracking-tight mb-2 italic">UniEat</h1>
         <div className="flex items-center justify-center gap-2">
            <div className="h-[1px] w-4 bg-brand-500/50" />
            <p className="text-brand-400 text-[10px] font-black uppercase tracking-[0.3em] font-medium">Heroism in Every Meal</p>
@@ -161,7 +161,7 @@ function AppContent() {
   const [orders, setOrders] = useState([]);
   const [donationContext, setDonationContext] = useState({ quantity: 5, originalPrice: 200 });
 
-  const { businessMode } = useAuth();
+  const { businessMode, user } = useAuth();
 
   // Watch for Business Mode toggle to auto-switch screen
   useEffect(() => {
@@ -181,6 +181,11 @@ function AppContent() {
   }, []);
 
   const handleNavigate = useCallback((target, data) => {
+    // Role-based access guards
+    const isVendor = user?.role === 'vendor';
+    if (isVendor && ['feed', 'impact'].includes(target)) return;
+    if (!isVendor && target === 'merchant') return;
+
     if (target === 'auth') {
       setAuthReturn({ screen, bag: selectedBag });
     }
@@ -189,11 +194,18 @@ function AppContent() {
     }
     setScreen(target);
     setSelectedBag(null);
-  }, [screen, selectedBag]);
+  }, [screen, selectedBag, user?.role]);
 
   const handleAuthSuccess = useCallback(() => {
-    setScreen(authReturn.screen);
-    setSelectedBag(authReturn.bag);
+    // Redirect vendor to dashboard, customer to previous screen
+    const stored = JSON.parse(localStorage.getItem('unieat_user') || '{}');
+    if (stored?.role === 'vendor') {
+      setScreen('merchant');
+      setSelectedBag(null);
+    } else {
+      setScreen(authReturn.screen || 'feed');
+      setSelectedBag(authReturn.bag);
+    }
   }, [authReturn]);
 
   const handleAuthBack = useCallback(() => {
@@ -225,10 +237,10 @@ function AppContent() {
         {screen === 'profile' && <ProfileScreen onNavigate={handleNavigate} />}
         {screen === 'auth' && <Auth onBack={handleAuthBack} onSuccess={handleAuthSuccess} />}
       </div>
-      {['feed', 'merchant', 'impact', 'history', 'profile'].includes(screen) && !businessMode && (
+      {['feed', 'merchant', 'impact', 'history', 'profile'].includes(screen) && (
         <BottomNav active={screen} onNavigate={handleNavigate} />
       )}
-      <NotificationDrawer />
+      <NotificationDrawer onNavigate={handleNavigate} />
     </>
   );
 }

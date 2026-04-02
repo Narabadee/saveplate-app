@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
     Store, Minus, Plus, ToggleLeft, ToggleRight, CheckCircle2,
-    AlertTriangle, TrendingUp, Sparkles, Lock, Clock, Heart, Star, MapPin,
-    Zap, Info, RefreshCw, ChevronDown, ChevronRight, LogOut, HandHeart, Leaf
+    AlertTriangle, Sparkles, Lock, Clock,
+    Zap, RefreshCw, ChevronRight, HandHeart, Timer, Bell
 } from 'lucide-react';
-import { useToast, useAuthGuard, useAuth } from './Shared';
+import { useToast, useAuthGuard, useAuth, useNotifications, AccountPill } from './Shared';
 import { Confetti } from './Shared';
 import { suggestPrice, fetchAITip } from './PricingEngine';
 import { CATEGORIES } from './data';
@@ -86,7 +86,9 @@ export default function MerchantDashboard({ onNavigate }) {
     
     const toast = useToast();
     const { guard, AuthGate, isSignedIn } = useAuthGuard();
-    const { toggleBusinessMode } = useAuth();
+    const { addNotification } = useNotifications();
+    const [lastCallAnnounced, setLastCallAnnounced] = useState(false);
+    const [lastCallMinutes, setLastCallMinutes] = useState(30);
 
     // Generate price suggestion when inputs change
     useEffect(() => {
@@ -113,7 +115,26 @@ export default function MerchantDashboard({ onNavigate }) {
 
     const handleReset = () => {
         setShowPosted(false);
+        setLastCallAnnounced(false);
         setQuantity(5); setPrice(79); setSafetyCheck(false);
+    };
+
+    const handleAnnounceLastCall = () => {
+        const closingAt = Date.now() + lastCallMinutes * 60 * 1000;
+        const closingTime = new Date(closingAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        localStorage.setItem('unieat_last_call', JSON.stringify({
+            active: true,
+            closingAt,
+            closingIn: lastCallMinutes,
+            announcedAt: Date.now(),
+        }));
+        addNotification(
+            `⏰ Last Call! Closing in ${lastCallMinutes} min`,
+            `Order now before the canteen closes at ${closingTime}! Only ${quantity} bags left — secure yours before they're gone.`,
+            'last_call'
+        );
+        toast(`📣 Last call announced! Students are being notified.`);
+        setLastCallAnnounced(true);
     };
 
     // Live Preview Savings calculation
@@ -138,6 +159,50 @@ export default function MerchantDashboard({ onNavigate }) {
                         <div><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Pickup Time</p><p className="text-sm font-bold text-gray-700">{pickupStart} – {pickupEnd}</p></div>
                     </div>
                 </div>
+                {/* ── Last Call Announcement ── */}
+                <div className={`w-full max-w-sm rounded-4xl p-6 border-2 transition-all duration-500 mb-2
+                    ${lastCallAnnounced ? 'border-red-200 bg-red-50 dark:bg-red-900/10' : 'border-gray-100 bg-white dark:bg-slate-800'}`}>
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${lastCallAnnounced ? 'bg-red-500' : 'bg-orange-100'}`}>
+                            {lastCallAnnounced ? <Bell className="w-5 h-5 text-white" /> : <Timer className="w-5 h-5 text-orange-600" />}
+                        </div>
+                        <div>
+                            <p className="font-black text-gray-800 dm-text text-sm">
+                                {lastCallAnnounced ? '✅ Last Call Announced!' : 'Ready to Close Soon?'}
+                            </p>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">
+                                {lastCallAnnounced ? 'Students have been notified' : 'Notify students to order now'}
+                            </p>
+                        </div>
+                    </div>
+
+                    {!lastCallAnnounced && (
+                        <>
+                            <div className="flex gap-2 mb-4">
+                                {[15, 30, 45].map(min => (
+                                    <button
+                                        key={min}
+                                        onClick={() => setLastCallMinutes(min)}
+                                        className={`flex-1 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest border transition-all
+                                        ${lastCallMinutes === min
+                                            ? 'bg-red-500 border-transparent text-white shadow-lg'
+                                            : 'bg-white dark:bg-slate-700 border-gray-100 dark:border-slate-600 text-gray-500'}`}
+                                    >
+                                        {min} min
+                                    </button>
+                                ))}
+                            </div>
+                            <button
+                                onClick={handleAnnounceLastCall}
+                                className="w-full py-4 rounded-2xl bg-gradient-to-r from-red-500 to-orange-500 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-red-200/50 active:scale-95 transition-all flex items-center justify-center gap-2"
+                            >
+                                <Timer className="w-4 h-4" />
+                                Announce Last Call ({lastCallMinutes} min)
+                            </button>
+                        </>
+                    )}
+                </div>
+
                 <div className="flex flex-col gap-3 w-full max-w-sm">
                     {/* ── Donation CTA — Primary Action ── */}
                     <button
@@ -157,7 +222,6 @@ export default function MerchantDashboard({ onNavigate }) {
                         <div className="flex-1 h-px bg-gray-100" />
                     </div>
 
-                    <button onClick={() => onNavigate('feed')} className="w-full py-4 rounded-2xl bg-gray-900 text-white font-black text-sm uppercase tracking-widest shadow-xl active:scale-95 transition-all">View in Discovery Feed</button>
                     <button onClick={handleReset} className="w-full py-4 rounded-2xl bg-white border border-gray-100 text-gray-500 font-black text-sm uppercase tracking-widest active:scale-95 transition-all">Post Another Deal</button>
                 </div>
             </div>
@@ -171,15 +235,21 @@ export default function MerchantDashboard({ onNavigate }) {
                 <div className="absolute bottom-[20%] right-[-10%] w-[40%] h-[40%] bg-amber-100 rounded-full blur-[100px]" />
             </div>
 
-            <header className="sticky top-0 z-50 glass-header px-6 pt-12 pb-6">
-                <div className="flex items-center gap-2 mb-1">
-                    <div className="w-8 h-8 rounded-lg bg-brand-500/10 flex items-center justify-center">
-                        <Store className="w-4 h-4 text-brand-600" />
+            <header className="sticky top-0 z-50 glass-header px-6 py-5 border-b border-white/20">
+                <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-brand-500/10 flex items-center justify-center border border-brand-500/20">
+                            <Store className="w-5 h-5 text-brand-600" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-brand-600 dark:text-brand-400 text-[10px] font-black uppercase tracking-[0.2em] leading-none mb-1">
+                                Merchant Portal
+                            </span>
+                            <h1 className="text-lg font-black text-gray-900 dm-text leading-none tracking-tight">UniEat Dashboard</h1>
+                        </div>
                     </div>
-                    <span className="text-brand-600 dark:text-brand-400 text-[10px] font-black uppercase tracking-widest">Merchant Dashboard</span>
+                    <div className="w-10 h-10" /> {/* Spacer to balance the layout */}
                 </div>
-                <h1 className="text-2xl font-black text-gray-900 dm-text leading-tight">Create Surge Deal ✨</h1>
-                <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-1">Ready in 30 seconds</p>
             </header>
 
             <div className="px-6 py-6 space-y-8 flex-1 relative">
@@ -376,19 +446,6 @@ export default function MerchantDashboard({ onNavigate }) {
                     {!isSignedIn ? (<><Lock className="w-6 h-6" /> SIGN IN TO POST</>) : safetyCheck ? (<><Sparkles className="w-6 h-6" /> LAUNCH SURGE DEAL</>) : '⚠️ VERIFICATION REQUIRED'}
                 </button>
 
-                {/* Exit Portal Access */}
-                <div className="pt-4 flex justify-center">
-                    <button 
-                        onClick={() => {
-                            toggleBusinessMode();
-                            toast('🏠 Back to Hero Discovery!');
-                        }}
-                        className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-brand-600 transition-all text-[10px] font-black uppercase tracking-widest"
-                    >
-                        <LogOut className="w-4 h-4 rotate-180" />
-                        Exit Business Portal
-                    </button>
-                </div>
             </div>
             <AuthGate />
         </div>

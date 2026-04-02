@@ -2,14 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import {
     ChevronLeft, Clock, Star, Package, Heart,
     Sparkles, Shield, MapPin, CheckCircle2, Minus, Plus, Utensils, Lock,
-    TrendingUp, ArrowRight, Flame
+    TrendingUp, ArrowRight, Flame, Timer
 } from 'lucide-react';
 import { Confetti, StoreAvatar, useToast, useAuthGuard, useNotifications, useFavorites } from './Shared';
 import { MOCK_REVIEWS } from './data';
 import { ReviewList } from './Reviews';
 
 // ─── Success Screen ─────────────────────────────────────────────────────────────
-function SuccessScreen({ bag, onBack, cart, total }) {
+function SuccessScreen({ bag, onBack, cart, total, isLastCall }) {
     const [showContent, setShowContent] = useState(false);
     const [showConfetti, setShowConfetti] = useState(true);
 
@@ -38,8 +38,12 @@ function SuccessScreen({ bag, onBack, cart, total }) {
                     <CheckCircle2 className="w-14 h-14 text-white" />
                 </div>
                 
-                <h1 className="text-4xl font-black text-white mb-2 tracking-tight drop-shadow-lg">Food Hero Status! ✨</h1>
-                <p className="text-brand-400 font-black uppercase tracking-[0.2em] text-[10px] mb-10 drop-shadow-sm">You've successfully rescued a meal</p>
+                <h1 className="text-4xl font-black text-white mb-2 tracking-tight drop-shadow-lg">
+                    {isLastCall ? 'Spot Secured! 🔒' : 'Food Hero Status! ✨'}
+                </h1>
+                <p className="text-brand-400 font-black uppercase tracking-[0.2em] text-[10px] mb-10 drop-shadow-sm">
+                    {isLastCall ? 'Your food is waiting at the pickup point' : "You've successfully rescued a meal"}
+                </p>
 
                 <div className="w-full max-w-sm rounded-[2.5rem] p-8 bg-white shadow-2xl shadow-slate-950/20 mb-12 text-left relative overflow-hidden group border border-white">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-brand-500/10 rounded-full blur-3xl -mr-16 -mt-16" />
@@ -80,15 +84,23 @@ function SuccessScreen({ bag, onBack, cart, total }) {
                     </div>
                 </div>
 
+                {isLastCall && (
+                    <div className="w-full max-w-sm rounded-3xl bg-white/10 border border-white/20 p-4 mb-2 text-center">
+                        <p className="text-brand-300 font-black text-[10px] uppercase tracking-widest mb-1">📍 Pickup Point</p>
+                        <p className="text-white text-sm font-bold">Your food is reserved & waiting.</p>
+                        <p className="text-white/60 text-[10px] font-bold mt-1 uppercase tracking-widest">Collect anytime during the pickup window</p>
+                    </div>
+                )}
+
                 <div className="flex flex-col gap-3 w-full max-w-sm">
-                    <button 
+                    <button
                         onClick={onBack}
                         className="w-full py-4 rounded-2xl bg-white text-slate-900 font-black text-xs uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all"
                     >
-                        Rescue More Food
+                        {isLastCall ? 'Back to Feed' : 'Rescue More Food'}
                     </button>
                     <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest">
-                        Show this screen at the counter during pickup
+                        {isLastCall ? 'Your spot is confirmed — food awaits at pickup' : 'Show this screen at the counter during pickup'}
                     </p>
                 </div>
             </div>
@@ -102,6 +114,7 @@ export default function BookingDetail({ bag, onBack, onAddOrder, onNavigate }) {
     const [showSuccess, setShowSuccess] = useState(false);
     const [cart, setCart] = useState({});
     const [showAllReviews, setShowAllReviews] = useState(false);
+    const [isLastCall, setIsLastCall] = useState(false);
     const toast = useToast();
     const { guard, AuthGate, isSignedIn } = useAuthGuard();
     const { addNotification } = useNotifications();
@@ -110,6 +123,13 @@ export default function BookingDetail({ bag, onBack, onAddOrder, onNavigate }) {
     const scrollContainerRef = useRef(null);
 
     const isSelectable = bag.type === 'selectable';
+
+    useEffect(() => {
+        try {
+            const data = JSON.parse(localStorage.getItem('unieat_last_call') || 'null');
+            setIsLastCall(!!(data && data.active && data.closingAt > Date.now()));
+        } catch { setIsLastCall(false); }
+    }, []);
 
     const calculateTotal = () => {
         if (!isSelectable) return bag.sellingPrice;
@@ -139,10 +159,12 @@ export default function BookingDetail({ bag, onBack, onAddOrder, onNavigate }) {
 
     const handleConfirm = () => {
         setConfirmed(true);
-        toast('🚀 Confirmed! Preparing your rescue...');
+        toast(isLastCall ? '🔒 Spot Secured! Your food is reserved.' : '🚀 Confirmed! Preparing your rescue...');
         addNotification(
-            '✅ Rescue Confirmed!',
-            `Your rescue from ${bag.storeName} has been recorded. Check the pickup window!`,
+            isLastCall ? '🔒 Spot Secured!' : '✅ Rescue Confirmed!',
+            isLastCall
+                ? `Your spot at ${bag.storeName} is locked in. Head to the pickup point when ready — your food will be waiting!`
+                : `Your rescue from ${bag.storeName} has been recorded. Check the pickup window!`,
             'order'
         );
         onAddOrder && onAddOrder({
@@ -154,7 +176,7 @@ export default function BookingDetail({ bag, onBack, onAddOrder, onNavigate }) {
         setTimeout(() => setShowSuccess(true), 1200);
     };
 
-    if (showSuccess) return <SuccessScreen bag={bag} onBack={onBack} cart={isSelectable ? cart : null} total={currentTotal} />;
+    if (showSuccess) return <SuccessScreen bag={bag} onBack={onBack} cart={isSelectable ? cart : null} total={currentTotal} isLastCall={isLastCall} />;
 
     return (
         <div className="flex flex-col min-h-screen bg-slate-50 dm-bg pb-44">
@@ -313,7 +335,15 @@ export default function BookingDetail({ bag, onBack, onAddOrder, onNavigate }) {
         </div>
 
         {/* Truly Fixed Order Action Bar - Outside transform context */}
-            <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 dm-card backdrop-blur-2xl p-6 pb-10 border-t border-gray-100 dark:border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-100 rounded-t-[2.5rem]">
+            <div className={`fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md backdrop-blur-2xl p-6 pb-10 border-t shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-100 rounded-t-[2.5rem]
+                ${isLastCall ? 'bg-red-50/95 dark:bg-red-950/95 border-red-100 dark:border-red-900/30' : 'bg-white/95 dm-card border-gray-100 dark:border-white/5'}`}>
+                {/* Last Call urgency strip */}
+                {isLastCall && (
+                    <div className="flex items-center gap-2 mb-4 bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl px-4 py-2.5">
+                        <Timer className="w-4 h-4 text-white shrink-0 animate-pulse" />
+                        <p className="text-white text-[10px] font-black uppercase tracking-widest">⏰ Last Call — Secure your spot before closing!</p>
+                    </div>
+                )}
                  <div className="flex items-center justify-between mb-5 px-3">
                      <div>
                         <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Savings</p>
@@ -324,20 +354,26 @@ export default function BookingDetail({ bag, onBack, onAddOrder, onNavigate }) {
                          <p className="text-2xl font-black text-gray-900 dm-text leading-none">฿{currentTotal}</p>
                      </div>
                  </div>
-                 
-                 <button onClick={() => guard(handleConfirm, onNavigate)} 
+
+                 <button onClick={() => guard(handleConfirm, onNavigate)}
                     disabled={(!canCheckout && isSignedIn) || confirmed}
                     className={`w-full py-5 rounded-4xl text-white font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all duration-500 active:scale-95 flex items-center justify-center gap-3
-                    ${((!canCheckout && isSignedIn) || confirmed) ? 'bg-gray-200 text-gray-400 cursor-not-allowed hidden-shadow' : 
-                      !isSignedIn ? 'bg-brand-600 shadow-brand-200 glow-brand' : 
+                    ${((!canCheckout && isSignedIn) || confirmed) ? 'bg-gray-200 text-gray-400 cursor-not-allowed hidden-shadow' :
+                      !isSignedIn ? 'bg-brand-600 shadow-brand-200 glow-brand' :
+                      isLastCall ? 'bg-gradient-to-r from-red-500 to-orange-500 shadow-red-200' :
                       'bg-linear-to-r from-brand-500 to-amber-600 shadow-brand-200 glow-brand'}`}>
                     {confirmed ? (
                         <div className="flex items-center gap-2">
                             <RefreshCw className="w-4 h-4 refresh-spin" />
-                            <span>Processing Rescue</span>
+                            <span>Securing Your Spot...</span>
                         </div>
                     ) : !isSignedIn ? (
                         <><Lock className="w-5 h-5" /> Sign In to Secure Bag</>
+                    ) : isLastCall ? (
+                        <div className="flex items-center gap-2">
+                            <Timer className="w-5 h-5" />
+                            <span>Secure My Spot Now</span>
+                        </div>
                     ) : (
                         <div className="flex items-center gap-2">
                             <span>Confirm & Reserve Bag</span>

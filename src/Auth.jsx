@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import {
-    LogIn, UserPlus, Mail, Lock, Eye, EyeOff, User, ChevronLeft, Leaf, AlertTriangle, Sparkles, ArrowRight
+    LogIn, UserPlus, Mail, Lock, Eye, EyeOff, User, ChevronLeft, Leaf, AlertTriangle, Sparkles, ArrowRight,
+    BookOpen, Store, CheckCircle2
 } from 'lucide-react';
 import { useAuth, useToast } from './Shared';
 
 export default function Auth({ onBack, onSuccess }) {
     const [tab, setTab] = useState('signin'); // 'signin' | 'signup'
+    const [role, setRole] = useState('customer'); // 'customer' | 'vendor'
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -33,13 +35,13 @@ export default function Auth({ onBack, onSuccess }) {
 
         await new Promise(r => setTimeout(r, 600));
 
-        const result = tab === 'signin' 
+        const result = tab === 'signin'
             ? signIn(email.trim(), password)
-            : signUp(name.trim(), email.trim(), password);
+            : signUp(name.trim(), email.trim(), password, role);
 
         setLoading(false);
         if (result.success) {
-            toast(tab === 'signin' ? '👋 Welcome back!' : '🎉 Welcome to SavePlate!');
+            toast(tab === 'signin' ? '👋 Welcome back!' : role === 'vendor' ? '🏪 Welcome, Vendor! Set up your canteen.' : '🎉 Welcome to UniEat!');
             onSuccess && onSuccess();
         } else {
             setError(result.error);
@@ -93,6 +95,41 @@ export default function Auth({ onBack, onSuccess }) {
                         </button>
                     ))}
                 </div>
+
+                {/* Role Selector — signup only */}
+                {tab === 'signup' && (
+                    <div className="space-y-3 mb-8 card-stagger">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">I am joining as a...</label>
+                        <div className="grid grid-cols-2 gap-3">
+                            {[
+                                { value: 'customer', icon: BookOpen, title: 'Student', sub: 'Browse & order food' },
+                                { value: 'vendor', icon: Store, title: 'Vendor', sub: 'Manage my canteen' },
+                            ].map(({ value, icon: Icon, title, sub }) => (
+                                <button
+                                    key={value}
+                                    type="button"
+                                    onClick={() => setRole(value)}
+                                    className={`relative p-5 rounded-3xl border-2 flex flex-col items-center gap-2 transition-all duration-300 active:scale-95
+                                    ${role === value
+                                        ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20 shadow-lg shadow-brand-500/10'
+                                        : 'border-gray-100 dark:border-slate-700 bg-white/40 dark:bg-slate-800/40'}`}
+                                >
+                                    {role === value && (
+                                        <div className="absolute top-2.5 right-2.5">
+                                            <CheckCircle2 className="w-4 h-4 text-brand-500" />
+                                        </div>
+                                    )}
+                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors
+                                        ${role === value ? 'bg-brand-500' : 'bg-gray-100 dark:bg-slate-700'}`}>
+                                        <Icon className={`w-6 h-6 ${role === value ? 'text-white' : 'text-gray-400'}`} />
+                                    </div>
+                                    <span className={`font-black text-sm ${role === value ? 'text-brand-700 dark:text-brand-300' : 'text-gray-600 dm-text'}`}>{title}</span>
+                                    <span className={`text-[9px] font-bold uppercase tracking-widest text-center leading-tight ${role === value ? 'text-brand-500' : 'text-gray-400'}`}>{sub}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="space-y-6 flex-1">
@@ -186,7 +223,7 @@ export default function Auth({ onBack, onSuccess }) {
                     </div>
 
                     <p className="mt-10 text-[9px] text-gray-400 font-bold leading-relaxed max-w-[220px] mx-auto uppercase tracking-tighter">
-                        Protected by SavePlate Security Protocols. All rights reserved 2026.
+                        Protected by UniEat Security Protocols. All rights reserved 2026.
                     </p>
                 </div>
             </div>

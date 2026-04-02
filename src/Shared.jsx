@@ -77,10 +77,11 @@ export function DarkModeProvider({ children }) {
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(() => {
         const defaultPrototypeUser = {
-            id: 'test-account',
+            id: 'test-customer',
             name: 'Test Hero',
             email: 'test@gmail.com',
             password: '123456',
+            role: 'customer',
             joinedAt: new Date().toISOString(),
         };
         try {
@@ -89,12 +90,13 @@ export function AuthProvider({ children }) {
         } catch { return defaultPrototypeUser; }
     });
 
-    const signUp = useCallback((name, email, password) => {
+    const signUp = useCallback((name, email, password, role = 'customer') => {
         const newUser = {
             id: Date.now(),
             name,
             email,
             password, // mock — never do this in production
+            role,
             joinedAt: new Date().toISOString(),
         };
         // Store all users for login lookup
@@ -109,20 +111,14 @@ export function AuthProvider({ children }) {
     }, []);
 
     const signIn = useCallback((email, password) => {
-        // Pre-seed test account for the user's testing
+        // Pre-seed test accounts for the prototype
         const users = JSON.parse(localStorage.getItem('saveplate_users') || '[]');
-        const testUser = {
-            id: 'test-account',
-            name: 'Test Hero',
-            email: 'test@gmail.com',
-            password: '123456',
-            joinedAt: new Date().toISOString(),
-        };
-        const exists = users.find(u => u.email.toLowerCase() === testUser.email.toLowerCase());
-        if (!exists) {
-            users.push(testUser);
-            localStorage.setItem('saveplate_users', JSON.stringify(users));
-        }
+        const testCustomer = { id: 'test-customer', name: 'Test Hero', email: 'test@gmail.com', password: '123456', role: 'customer', joinedAt: new Date().toISOString() };
+        const testVendor = { id: 'test-vendor', name: 'Test Vendor', email: 'vendor@gmail.com', password: '123456', role: 'vendor', joinedAt: new Date().toISOString() };
+        let changed = false;
+        if (!users.find(u => u.email.toLowerCase() === testCustomer.email.toLowerCase())) { users.push(testCustomer); changed = true; }
+        if (!users.find(u => u.email.toLowerCase() === testVendor.email.toLowerCase())) { users.push(testVendor); changed = true; }
+        if (changed) localStorage.setItem('saveplate_users', JSON.stringify(users));
 
         const found = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
         if (!found) return { success: false, error: 'Invalid email or password.' };
@@ -154,15 +150,9 @@ export function AuthProvider({ children }) {
         return updateUser({ avatar });
     }, [updateUser]);
 
-    const [businessMode, setBusinessMode] = useState(() => localStorage.getItem('saveplate_business_mode') === 'true');
-
-    const toggleBusinessMode = useCallback(() => {
-        setBusinessMode(prev => {
-            const newVal = !prev;
-            localStorage.setItem('saveplate_business_mode', newVal);
-            return newVal;
-        });
-    }, []);
+    // Role is fixed at signup — businessMode is derived, not toggled
+    const businessMode = (user?.role ?? 'customer') === 'vendor';
+    const toggleBusinessMode = useCallback(() => {}, []); // kept for API compat, no-op
 
     return (
         <AuthContext.Provider value={{ user, signIn, signUp, signOut, updateUser, updateAvatar, businessMode, toggleBusinessMode }}>
@@ -248,7 +238,7 @@ export function FavoritesProvider({ children }) {
 }
 
 // ─── Notification Drawer ────────────────────────────────────────────────────────
-export function NotificationDrawer() {
+export function NotificationDrawer({ onNavigate }) {
     const { notifications, isOpen, setIsOpen, markAllRead, markRead } = useNotifications();
 
     if (!isOpen) return null;
@@ -286,25 +276,35 @@ export function NotificationDrawer() {
                 <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4 scrollbar-hide">
                     {notifications.length > 0 ? (
                         notifications.map((n) => (
-                            <div 
-                                key={n.id} 
-                                onClick={() => markRead(n.id)}
+                            <div
+                                key={n.id}
+                                onClick={() => {
+                                    markRead(n.id);
+                                    if (n.type === 'last_call' && onNavigate) {
+                                        setIsOpen(false);
+                                        onNavigate('feed');
+                                    }
+                                }}
                                 className={`relative group p-5 rounded-4xl transition-all duration-300 border cursor-pointer
-                                ${n.read 
-                                    ? 'bg-gray-50/50 dark:bg-white/5 border-transparent opacity-60' 
-                                    : 'bg-white dark:bg-slate-800 border-brand-100 dark:border-brand-900/30 shadow-lg shadow-brand-500/5'}`}
+                                ${n.read
+                                    ? 'bg-gray-50/50 dark:bg-white/5 border-transparent opacity-60'
+                                    : n.type === 'last_call'
+                                        ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-900/40 shadow-lg shadow-red-500/10'
+                                        : 'bg-white dark:bg-slate-800 border-brand-100 dark:border-brand-900/30 shadow-lg shadow-brand-500/5'}`}
                             >
                                 {!n.read && (
-                                    <div className="absolute top-5 right-5 w-2 h-2 bg-brand-500 rounded-full shadow-[0_0_10px_rgba(255,52,0,0.5)]" />
+                                    <div className={`absolute top-5 right-5 w-2 h-2 rounded-full shadow-lg ${n.type === 'last_call' ? 'bg-red-500 animate-ping' : 'bg-brand-500'}`} />
                                 )}
-                                
+
                                 <div className="flex gap-4">
                                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm
-                                        ${n.type === 'deal' ? 'bg-orange-100 text-orange-600' : 
-                                          n.type === 'order' ? 'bg-brand-100 text-brand-600' : 
+                                        ${n.type === 'deal' ? 'bg-orange-100 text-orange-600' :
+                                          n.type === 'order' ? 'bg-brand-100 text-brand-600' :
+                                          n.type === 'last_call' ? 'bg-red-100 text-red-600' :
                                           'bg-amber-100 text-amber-600'}`}>
-                                        {n.type === 'deal' ? <Flame className="w-6 h-6" /> : 
-                                         n.type === 'order' ? <Package className="w-6 h-6" /> : 
+                                        {n.type === 'deal' ? <Flame className="w-6 h-6" /> :
+                                         n.type === 'order' ? <Package className="w-6 h-6" /> :
+                                         n.type === 'last_call' ? <Timer className="w-6 h-6" /> :
                                          <Award className="w-6 h-6" />}
                                     </div>
                                     <div className="flex-1 min-w-0">
@@ -748,9 +748,13 @@ export function AnimatedCounter({ target, duration = 1500, decimals = 0 }) {
 export function BottomNav({ active, onNavigate, notifCount = 2 }) {
     const { user } = useAuth();
 
-    const items = [
+    const isVendor = user?.role === 'vendor';
+    const items = isVendor ? [
+        { id: 'merchant', icon: Store, label: 'Dashboard' },
+        { id: 'history', icon: Package, label: 'Orders' },
+        { id: 'profile', icon: User, label: 'Profile' },
+    ] : [
         { id: 'feed', icon: ShoppingBag, label: 'Rescue' },
-        { id: 'merchant', icon: Store, label: 'Merchant' },
         { id: 'impact', icon: BarChart3, label: 'Impact' },
         { id: 'history', icon: History, label: 'Orders' },
         { id: 'profile', icon: User, label: 'Profile' },
@@ -843,4 +847,166 @@ export function useAuthGuard() {
     const AuthGate = () => null; // Modal no longer needed
 
     return { guard, AuthGate, isSignedIn: !!user };
+}
+
+// ─── Account Pill + Switcher Sheet ─────────────────────────────────────────────
+export function AccountPill({ onNavigate }) {
+    const [open, setOpen] = useState(false);
+    const { user, signIn, signOut } = useAuth();
+    const toast = useToast();
+
+    if (!user) {
+        return (
+            <button
+                onClick={() => onNavigate('auth')}
+                className="flex items-center gap-2 glass-pane px-4 py-2 rounded-2xl border-white/40 shadow-sm active:scale-95 transition-all bg-white/10 hover:bg-white/20"
+            >
+                <User className="w-4 h-4 text-gray-500" />
+                <span className="text-[11px] font-black text-gray-600 dark:text-white uppercase tracking-widest">Sign In</span>
+            </button>
+        );
+    }
+
+    const initials = user.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const isVendor = user.role === 'vendor';
+
+    const handleSwitch = (targetRole) => {
+        const email = targetRole === 'vendor' ? 'vendor@gmail.com' : 'test@gmail.com';
+        const result = signIn(email, '123456');
+        if (result.success) {
+            toast(targetRole === 'vendor' ? '🏪 Switched to Vendor!' : '🎓 Switched to Student!');
+        }
+        setOpen(false);
+    };
+
+    const handleSignOut = () => {
+        signOut();
+        toast('👋 Signed out. See you soon!', 'info');
+        setOpen(false);
+        onNavigate('auth');
+    };
+
+    return (
+        <div className="relative">
+            {/* Pill Button */}
+            <button
+                onClick={() => setOpen(true)}
+                className="flex items-center gap-2 glass-pane pl-1.5 pr-3 py-1.5 rounded-2xl border-white/40 shadow-sm hover:bg-white/40 transition-all active:scale-95 btn-press"
+            >
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-white text-[11px] font-black shadow-lg
+                    ${isVendor ? 'bg-linear-to-br from-brand-400 to-brand-600' : 'bg-linear-to-br from-blue-400 to-blue-600'}`}>
+                    {initials}
+                </div>
+                <div className="flex flex-col items-start leading-none">
+                    <span className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-tighter mb-0.5">
+                        {isVendor ? 'Vendor' : 'Student'}
+                    </span>
+                    <span className="text-[11px] font-black text-gray-900 dm-text tracking-tight">
+                        {user.name.split(' ')[0]}
+                    </span>
+                </div>
+                <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Account Overlay / Bottom Sheet */}
+            {open && (
+                <div className="fixed inset-0 z-[9999] flex items-end justify-center" onClick={() => setOpen(false)}>
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-md overlay-fade" />
+                    <div
+                        className="relative w-full max-w-md bg-white dm-card rounded-t-[3rem] shadow-2xl modal-slide-up overflow-hidden"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Handle */}
+                        <div className="flex justify-center pt-5 pb-3">
+                            <div className="w-12 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full" />
+                        </div>
+
+                        <div className="px-8 pt-2 pb-12 space-y-7">
+                            {/* User Profile Info */}
+                            <div className="flex flex-col items-center text-center">
+                                <div className={`w-20 h-20 rounded-3xl flex items-center justify-center text-white text-3xl font-black shadow-2xl mb-4
+                                    ${isVendor ? 'bg-linear-to-br from-brand-400 to-brand-600' : 'bg-linear-to-br from-blue-400 to-blue-600'}`}>
+                                    {initials}
+                                </div>
+                                <h3 className="text-2xl font-black text-gray-900 dm-text tracking-tight">{user.name}</h3>
+                                <p className="text-gray-400 font-bold text-xs mt-1">{user.email}</p>
+                            </div>
+
+                            {/* Divider with Label */}
+                            <div className="relative flex items-center gap-4">
+                                <div className="flex-1 h-px bg-gray-100 dark:bg-gray-800" />
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Switch Workspace</span>
+                                <div className="flex-1 h-px bg-gray-100 dark:bg-gray-800" />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                {[
+                                    { 
+                                        role: 'customer', 
+                                        emoji: '🎓', 
+                                        label: 'Student', 
+                                        email: 'test@gmail.com',
+                                        active: 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-blue-500/5',
+                                        dot: 'bg-blue-500',
+                                        text: 'text-blue-600'
+                                    },
+                                    { 
+                                        role: 'vendor', 
+                                        emoji: '🏪', 
+                                        label: 'Vendor', 
+                                        email: 'vendor@gmail.com',
+                                        active: 'border-brand-500 bg-brand-50 dark:bg-brand-900/20 shadow-brand-500/5',
+                                        dot: 'bg-brand-500',
+                                        text: 'text-brand-600'
+                                    },
+                                ].map(({ role, emoji, label, email, active, dot, text }) => {
+                                    const isActive = (role === 'vendor') === isVendor;
+                                    return (
+                                        <button
+                                            key={role}
+                                            onClick={() => !isActive && handleSwitch(role)}
+                                            className={`relative p-5 rounded-3xl border-2 flex flex-col items-center gap-2 transition-all duration-300 shadow-lg
+                                                ${isActive ? active : 'border-gray-50 dark:border-slate-800 hover:border-gray-100 dark:hover:border-slate-700 active:scale-95 shadow-none'}`}
+                                        >
+                                            {isActive && (
+                                                <div className={`absolute top-3 right-3 w-2.5 h-2.5 rounded-full ${dot} shadow-lg`} />
+                                            )}
+                                            <span className="text-3xl filter drop-shadow-md">{emoji}</span>
+                                            <div className="text-center">
+                                                <p className="text-xs font-black text-gray-900 dm-text tracking-tight">{label}</p>
+                                                <p className="text-[9px] text-gray-400 font-bold tracking-tight">{email}</p>
+                                            </div>
+                                            {isActive ? (
+                                                <span className={`text-[9px] font-black uppercase tracking-widest ${text}`}>Active</span>
+                                            ) : (
+                                                <span className="text-[9px] font-black text-gray-300 dark:text-gray-600 uppercase tracking-widest">Tap to enter</span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Actions Group */}
+                            <div className="space-y-3 pt-2">
+                                <button
+                                    onClick={handleSignOut}
+                                    className="w-full py-5 rounded-3xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-900 dark:text-white font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-95 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all duration-300"
+                                >
+                                    <LogOut className="w-5 h-5 text-red-500" />
+                                    <span>Sign Out Access</span>
+                                </button>
+                                
+                                <button
+                                    onClick={() => setOpen(false)}
+                                    className="w-full py-4 text-gray-400 text-[11px] font-black uppercase tracking-widest hover:text-gray-600 transition-colors"
+                                >
+                                    Return to Dashboard
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 }

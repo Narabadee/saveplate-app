@@ -1,13 +1,35 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Clock, Flame, Heart, Shield, MapPin, ChevronRight, Search, X,
-    Sparkles, Timer, Leaf, Bell, Map, List, RefreshCw, Star, CheckCircle2
+    Sparkles, Timer, Leaf, Bell, Map, List, RefreshCw, Star, CheckCircle2, AlertCircle
 } from 'lucide-react';
 import { MOCK_BAGS, CATEGORIES } from './data';
-import { SkeletonCard, StoreAvatar, usePullToRefresh, useToast, useDarkMode, useAuthGuard, useNotifications, useFavorites } from './Shared';
+import { SkeletonCard, StoreAvatar, usePullToRefresh, useToast, useDarkMode, useAuthGuard, useNotifications, useFavorites, AccountPill } from './Shared';
+
+// ─── Last Call Countdown ────────────────────────────────────────────────────────
+function LastCallCountdown({ closingAt }) {
+    const [remaining, setRemaining] = useState('');
+    useEffect(() => {
+        const update = () => {
+            const diff = Math.max(0, closingAt - Date.now());
+            const mins = Math.floor(diff / 60000);
+            const secs = Math.floor((diff % 60000) / 1000);
+            setRemaining(diff === 0 ? 'Closed' : `${mins}:${String(secs).padStart(2, '0')}`);
+        };
+        update();
+        const t = setInterval(update, 1000);
+        return () => clearInterval(t);
+    }, [closingAt]);
+    return (
+        <div className="text-center">
+            <p className="text-white font-black text-xl leading-none">{remaining}</p>
+            <p className="text-red-200 text-[9px] font-black uppercase tracking-widest">remaining</p>
+        </div>
+    );
+}
 
 // ─── Bag Card ───────────────────────────────────────────────────────────────────
-function BagCard({ bag, onSelect, index }) {
+function BagCard({ bag, onSelect, index, lastCall }) {
     const savings = Math.round(((bag.originalPrice - bag.sellingPrice) / bag.originalPrice) * 100);
     const isLastFew = bag.remaining <= 3;
     const isSelectable = bag.type === 'selectable';
@@ -59,6 +81,16 @@ function BagCard({ bag, onSelect, index }) {
                             <span className="text-[8px] font-bold uppercase tracking-widest leading-none">OFF</span>
                         </div>
                     </div>
+
+                    {/* Last Call Badge */}
+                    {lastCall && (
+                        <div className="absolute top-14 left-4 right-4 z-10">
+                            <div className="bg-gradient-to-r from-red-500 to-orange-500 text-white text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-xl flex items-center gap-2 shadow-lg shadow-red-500/30 animate-pulse">
+                                <Timer className="w-3.5 h-3.5 shrink-0" />
+                                <span>⏰ Last Call — Order Before Closing!</span>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Bottom Content Over Image */}
                     <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
@@ -148,6 +180,7 @@ export default function ConsumerFeed({ onSelectBag, onNavigate }) {
     const [activeCategory, setActiveCategory] = useState(0);
     const [activeTab, setActiveTab] = useState('all'); // 'all' | 'surprise' | 'selectable'
     const [viewMode, setViewMode] = useState('list');
+    const [lastCall, setLastCall] = useState(null);
     const toast = useToast();
     const { dark } = useDarkMode();
     const { guard, AuthGate } = useAuthGuard();
@@ -161,6 +194,24 @@ export default function ConsumerFeed({ onSelectBag, onNavigate }) {
     useEffect(() => {
         const timer = setTimeout(() => setLoading(false), 1500);
         return () => clearTimeout(timer);
+    }, []);
+
+    // Poll for last-call announcements from vendors
+    useEffect(() => {
+        const checkLastCall = () => {
+            try {
+                const data = JSON.parse(localStorage.getItem('unieat_last_call') || 'null');
+                if (data && data.active && data.closingAt > Date.now()) {
+                    setLastCall(data);
+                } else {
+                    setLastCall(null);
+                    if (data && data.active) localStorage.removeItem('unieat_last_call');
+                }
+            } catch { setLastCall(null); }
+        };
+        checkLastCall();
+        const interval = setInterval(checkLastCall, 15000);
+        return () => clearInterval(interval);
     }, []);
 
     const filteredBags = MOCK_BAGS.filter(b => {
@@ -192,23 +243,23 @@ export default function ConsumerFeed({ onSelectBag, onNavigate }) {
             </div>
 
             {/* Header: Immersive Glass Style */}
-            <header className="sticky top-0 z-50 glass-header px-6 pt-12 pb-6 flex flex-col gap-5">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <div className="flex items-center gap-1.5 mb-0.5">
+            <header className="sticky top-0 z-50 glass-header px-6 pt-12 pb-6 border-b border-white/20">
+                <div className="flex items-center justify-between mb-5">
+                    <div className="flex flex-col">
+                        <div className="flex items-center gap-1.5 mb-1">
                             <span className="w-2 h-2 rounded-full bg-brand-500 animate-pulse" />
-                            <span className="text-brand-600 dark:text-brand-400 text-[10px] font-black uppercase tracking-widest">Live in Bangkok</span>
+                            <span className="text-brand-600 dark:text-brand-400 text-[10px] font-black uppercase tracking-[0.2em] leading-none">Live in Bangkok</span>
                         </div>
-                        <h1 className="text-2xl font-black text-gray-900 dm-text leading-tight">Welcome, Hero ✨</h1>
+                        <h1 className="text-2xl font-black text-gray-900 dm-text leading-none tracking-tight">Explore Deals ✨</h1>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <button 
+                    <div className="flex items-center gap-2">
+                        <button
                             onClick={() => setIsOpen(true)}
-                            className="w-11 h-11 rounded-2xl glass-pane flex items-center justify-center hover:bg-white/40 transition-all btn-press border-gray-100 shadow-sm relative"
+                            className="w-10 h-10 rounded-2xl glass-pane flex items-center justify-center hover:bg-white/40 transition-all btn-press border-white/40 shadow-sm relative"
                         >
-                            <Bell className="w-5 h-5 text-gray-700 dm-text" />
+                            <Bell className="w-5 h-5 text-gray-700 dark:text-white dm-text" />
                             {unreadCount > 0 && (
-                                <span className="absolute top-2.5 right-2.5 w-4 h-4 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
+                                <span className="absolute top-2 right-2 w-4 h-4 bg-red-500 rounded-full border-2 border-white dark:border-gray-900 flex items-center justify-center">
                                     <span className="text-[8px] font-black text-white">{unreadCount}</span>
                                 </span>
                             )}
@@ -333,13 +384,31 @@ export default function ConsumerFeed({ onSelectBag, onNavigate }) {
                 ) : (
                     /* Feed List */
                     <div className="space-y-6">
+                        {/* Last Call Alert Banner */}
+                        {lastCall && !loading && (
+                            <div className="rounded-3xl overflow-hidden shadow-xl shadow-red-500/20 animate-slide-in">
+                                <div className="bg-gradient-to-r from-red-500 via-red-500 to-orange-500 p-4 flex items-center gap-4">
+                                    <div className="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+                                        <Timer className="w-6 h-6 text-white" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-white font-black text-sm uppercase tracking-widest leading-tight">⏰ Last Call Alert!</p>
+                                        <p className="text-red-100 text-[10px] font-bold mt-0.5">A canteen is closing soon — order now before it's gone!</p>
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                        <LastCallCountdown closingAt={lastCall.closingAt} />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {loading ? (
                             <>
                                 <SkeletonCard /><SkeletonCard /><SkeletonCard />
                             </>
                         ) : (
                             filteredBags.map((bag, i) => (
-                                <BagCard key={bag.id} bag={bag} onSelect={() => guard(() => onSelectBag(bag), onNavigate)} index={i} />
+                                <BagCard key={bag.id} bag={bag} onSelect={() => guard(() => onSelectBag(bag), onNavigate)} index={i} lastCall={!!lastCall} />
                             ))
                         )}
                         {!loading && filteredBags.length === 0 && (
